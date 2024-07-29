@@ -1,4 +1,3 @@
-
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,7 +9,7 @@ def calculate_pnl(expiration_price, legs):
         option_type = leg['option_type']
         strike_price = leg['strike_price']
         premium = leg['premium']
-       
+
         if option_type == 'call':
             if direction == 'buy':
                 pnl += max(0, expiration_price - strike_price) - premium
@@ -92,18 +91,18 @@ num_legs = st.number_input('Enter Number of Legs', min_value=1, max_value=10, va
 
 legs = []
 for i in range(num_legs):
-    st.write(f'Leg {i + 1}')
-    direction = st.selectbox(f'Direction for Leg {i + 1}', ['buy', 'sell'], key=f'direction_{i}')
-    option_type = st.selectbox(f'Option Type for Leg {i + 1}', ['call', 'put'], key=f'option_type_{i}')
-    strike_price = st.number_input(f'Strike Price for Leg {i + 1}', value=100.0, key=f'strike_price_{i}')
-    premium = st.number_input(f'Premium for Leg {i + 1}', value=1.0, key=f'premium_{i}')
-   
-    legs.append({
-        'direction': direction,
-        'option_type': option_type,
-        'strike_price': strike_price,
-        'premium': premium
-    })
+    with st.expander(f'Leg {i + 1}'):
+        direction = st.selectbox(f'Direction for Leg {i + 1}', ['buy', 'sell'], key=f'direction_{i}')
+        option_type = st.selectbox(f'Option Type for Leg {i + 1}', ['call', 'put'], key=f'option_type_{i}')
+        strike_price = st.number_input(f'Strike Price for Leg {i + 1}', value=100.0, key=f'strike_price_{i}')
+        premium = st.number_input(f'Premium for Leg {i + 1}', value=1.0, key=f'premium_{i}')
+
+        legs.append({
+            'direction': direction,
+            'option_type': option_type,
+            'strike_price': strike_price,
+            'premium': premium
+        })
 
 contract_size = st.number_input('Enter Contract Size', value=1)
 
@@ -113,11 +112,11 @@ if st.button('Calculate Maximum Gain and Loss'):
     if max_gain == 'Unlimited':
         st.write('Maximum Gain: Unlimited')
     else:
-        st.write(f'Maximum Gain: {max_gain * contract_size:.2f}')
+        st.write(f'Maximum Gain: {max_gain:.2f}')
    
     if max_loss == 'Unlimited':
         st.write('Maximum Loss: Unlimited')
     else:
-        st.write(f'Maximum Loss: {max_loss * contract_size:.2f}')
+        st.write(f'Maximum Loss: {max_loss:.2f}')
    
     plot_payoff_chart(legs)
