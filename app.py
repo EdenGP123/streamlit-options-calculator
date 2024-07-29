@@ -9,17 +9,18 @@ def calculate_pnl(expiration_price, legs):
         option_type = leg['option_type']
         strike_price = leg['strike_price']
         premium = leg['premium']
+        quantity = leg['quantity']
 
         if option_type == 'call':
             if direction == 'buy':
-                pnl += max(0, expiration_price - strike_price) - premium
+                pnl += quantity * (max(0, expiration_price - strike_price) - premium)
             else:
-                pnl += premium - max(0, expiration_price - strike_price)
+                pnl += quantity * (premium - max(0, expiration_price - strike_price))
         else:  # put option
             if direction == 'buy':
-                pnl += max(0, strike_price - expiration_price) - premium
+                pnl += quantity * (max(0, strike_price - expiration_price) - premium)
             else:
-                pnl += premium - max(0, strike_price - expiration_price)
+                pnl += quantity * (premium - max(0, strike_price - expiration_price))
 
     return pnl
 
@@ -28,21 +29,22 @@ def calculate_single_leg_gain_loss(leg):
     option_type = leg['option_type']
     strike_price = leg['strike_price']
     premium = leg['premium']
+    quantity = leg['quantity']
 
     if option_type == 'call':
         if direction == 'buy':
             max_gain = 'Unlimited'
-            max_loss = premium
+            max_loss = premium * quantity
         else:
-            max_gain = premium
+            max_gain = premium * quantity
             max_loss = 'Unlimited'
     else:  # put option
         if direction == 'buy':
-            max_gain = strike_price - premium
-            max_loss = premium
+            max_gain = (strike_price - premium) * quantity
+            max_loss = premium * quantity
         else:
-            max_gain = premium
-            max_loss = strike_price - premium
+            max_gain = premium * quantity
+            max_loss = (strike_price - premium) * quantity
 
     return max_gain, max_loss
 
@@ -96,12 +98,14 @@ for i in range(num_legs):
         option_type = st.selectbox(f'Option Type for Leg {i + 1}', ['call', 'put'], key=f'option_type_{i}')
         strike_price = st.number_input(f'Strike Price for Leg {i + 1}', value=100.0, key=f'strike_price_{i}')
         premium = st.number_input(f'Premium for Leg {i + 1}', value=1.0, key=f'premium_{i}')
+        quantity = st.number_input(f'Quantity for Leg {i + 1}', value=1, min_value=1, key=f'quantity_{i}')
 
         legs.append({
             'direction': direction,
             'option_type': option_type,
             'strike_price': strike_price,
-            'premium': premium
+            'premium': premium,
+            'quantity': quantity
         })
 
 contract_size = st.number_input('Enter Contract Size', value=1)
