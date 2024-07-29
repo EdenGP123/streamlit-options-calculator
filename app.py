@@ -2,121 +2,125 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 
-def calculate_pnl(expiration_price, legs):
-    pnl = 0
-    for leg in legs:
-        direction = leg['direction']
-        option_type = leg['option_type']
-        strike_price = leg['strike_price']
-        premium = leg['premium']
-       
-        if option_type == 'call':
-            if direction == 'buy':
-                pnl += max(0, expiration_price - strike_price) - premium
-            else:
-                pnl += premium - max(0, expiration_price - strike_price)
-        else:  # put option
-            if direction == 'buy':
-                pnl += max(0, strike_price - expiration_price) - premium
-            else:
-                pnl += premium - max(0, strike_price - expiration_price)
+def calculate_profit_loss(direction, option, strike, premium, quantity, contract_size, price):
+    intrinsic_value = max(strike - price if option == "Put" else price - strike, 0)
+    if direction == "Client Buy":
+        return (intrinsic_value - premium) * quantity * contract_size
+    elif direction == "Client Sell":
+        return (premium - intrinsic_value) * quantity * contract_size
+    return 0
 
-    return pnl
+def max_gain_loss_single_leg(strategy):
+    direction, option, strike, premium, quantity, contract_size = strategy
+    if direction == "Client Buy" and option == "Call":
+        return "Long Call", "Unlimited", premium * quantity * contract_size
+    elif direction == "Client Buy" and option == "Put":
+        return "Long Put", (strike - premium) * quantity * contract_size, premium * quantity * contract_size
+    elif direction == "Client Sell" and option == "Call":
+        return "Short Call", premium * quantity * contract_size, "Unlimited"
+    elif direction == "Client Sell" and option == "Put":
+        return "Short Put", premium * quantity * contract_size, (strike - premium) * quantity * contract_size
+    return "Varies", "Varies", "Varies"
 
-def calculate_single_leg_gain_loss(leg):
-    direction = leg['direction']
-    option_type = leg['option_type']
-    strike_price = leg['strike_price']
-    premium = leg['premium']
+def max_gain_loss_two_legs(sorted_legs):
+    if sorted_legs[0][1] == sorted_legs[1][1] == "Call" and sorted_legs[0][0] != sorted_legs[1][0]:
+        return ("Bull Call Spread",
+                (sorted_legs[1][2] - sorted_legs[0][2] - sorted_legs[0][3] + sorted_legs[1][3]) * sorted_legs[0][4] * sorted_legs[0][5],
+                (sorted_legs[0][3] - sorted_legs[1][3]) * sorted_legs[0][4] * sorted_legs[0][5])
+    elif sorted_legs[0][1] == sorted_legs[1][1] == "Put" and sorted_legs[0][0] != sorted_legs[1][0]:
+        return ("Bear Put Spread",
+                (sorted_legs[0][2] - sorted_legs[1][2] - sorted_legs[0][3] + sorted_legs[1][3]) * sorted_legs[0][4] * sorted_legs[0][5],
+                (sorted_legs[0][3] - sorted_legs[1][3]) * sorted_legs[0][4] * sorted_legs[0][5])
+    elif sorted_legs[0][1] == "Call" and sorted_legs[1][1] == "Stock":
+        return ("Covered Call",
+                (sorted_legs[0][2] + sorted_legs[0][3] - sorted_legs[1][2]) * sorted_legs[0][4] * sorted_legs[0][5],
+                (sorted_legs[1][2] - sorted_legs[0][3]) * sorted_legs[0][4] * sorted_legs[0][5])
+    elif sorted_legs[0][1] == "Put" and sorted_legs[1][1] == "Stock":
+        return ("Protective Put",
+                "Unlimited",
+                (sorted_legs[1][2] - sorted_legs[0][2] + sorted_legs[0][3]) * sorted_legs[0][4] * sorted_legs[0][5])
+    return "Varies", "Varies", "Varies"
 
-    if option_type == 'call':
-        if direction == 'buy':
-            max_gain = 'Unlimited'
-            max_loss = premium
-        else:
-            max_gain = premium
-            max_loss = 'Unlimited'
-    else:  # put option
-        if direction == 'buy':
-            max_gain = strike_price - premium
-            max_loss = premium
-        else:
-            max_gain = premium
-            max_loss = strike_price - premium
+def max_gain_loss_three_legs(sorted_legs):
+    if all(leg[1] == "Call" for leg in sorted_legs):
+        return ("Long Straddle",
+                "Unlimited",
+                sum(leg[3] * leg[4] * leg[5] for leg in sorted_legs))
+    elif all(leg[1] == "Put" for leg in sorted_legs):
+        return ("Long Straddle",
+                sum(leg[2] * leg[4] * leg[5] for leg in sorted_legs) - sum(leg[3] * leg[4] * leg[5] for leg in sorted_legs),
+                sum(leg[3] * leg[4] * leg[5] for leg in sorted_legs))
+    elif sorted_legs[0][1] == "Call" and sorted_legs[1][1] == "Put" and sorted_legs[2][1] == "Put":
+        return ("Short Straddle",
+                sum(leg[3] * leg[4] * leg[5] for leg in sorted_legs),
+                "Unlimited")
+    return "Varies", "Varies", "Varies"
 
-    return max_gain, max_loss
+def max_gain_loss_four_legs(sorted_legs):
+    if sorted_legs[0][1] == sorted_legs[1][1] == "Call" and sorted_legs[2][1] == sorted_legs[3][1] == "Put":
+        return ("Iron Condor",
+                sum(leg[3] * leg[4] * leg[5] for leg in sorted_legs if leg[0] == "Client Sell") - sum(leg[3] * leg[4] * leg[5] for leg in sorted_legs if leg[0] == "Client Buy"),
+                min((sorted_legs[1][2] - sorted_legs[0][2]) * sorted_legs[0][4] * sorted_legs[0][5],
+                    (sorted_legs[3][2] - sorted_legs[2][2]) * sorted_legs[2][4] * sorted_legs[2][5]) - sum(leg[3] * leg[4] * leg[5] for leg in sorted_legs if leg[0] == "Client Sell"))
+    return "Varies", "Varies", "Varies"
 
-def calculate_two_leg_gain_loss(legs):
-    expiration_prices = np.linspace(0, 2 * max(leg['strike_price'] for leg in legs), 1000)
-    pnl = [calculate_pnl(price, legs) for price in expiration_prices]
+def evaluate_strategy(leg_data):
+    sorted_legs = sorted(leg_data, key=lambda x: (x[2], x[1]))
+    strategy_type = "Complex Strategy"
+    max_gain, max_loss = "Varies", "Varies"
 
-    max_gain = max(pnl)
-    max_loss = min(pnl)
-   
-    return max_gain, max_loss
-
-def calculate_max_gain_loss(legs):
-    if len(legs) == 1:
-        return calculate_single_leg_gain_loss(legs[0])
-    elif len(legs) == 2:
-        return calculate_two_leg_gain_loss(legs)
+    if len(sorted_legs) == 1:
+        strategy_type, max_gain, max_loss = max_gain_loss_single_leg(sorted_legs[0])
+    elif len(sorted_legs) == 2:
+        strategy_type, max_gain, max_loss = max_gain_loss_two_legs(sorted_legs)
+    elif len(sorted_legs) == 3:
+        strategy_type, max_gain, max_loss = max_gain_loss_three_legs(sorted_legs)
+    elif len(sorted_legs) == 4:
+        strategy_type, max_gain, max_loss = max_gain_loss_four_legs(sorted_legs)
     else:
-        expiration_prices = np.linspace(0, 2 * max(leg['strike_price'] for leg in legs), 1000)
-        pnl = [calculate_pnl(price, legs) for price in expiration_prices]
-       
-        max_gain = max(pnl)
-        max_loss = min(pnl)
+        strategy_type = "Complex Multi-Leg Strategy"
 
-    return max_gain, max_loss
+    return strategy_type, max_gain, max_loss
 
-def plot_payoff_chart(legs):
-    expiration_prices = np.linspace(0, 2 * max(leg['strike_price'] for leg in legs), 500)
-    pnl = [calculate_pnl(price, legs) for price in expiration_prices]
+def plot_strategy(leg_data):
+    prices = np.linspace(0, max(leg[2] for leg in leg_data) * 2, 500)
+    total_pnl = np.zeros_like(prices)
+   
+    for leg in leg_data:
+        pnl = [calculate_profit_loss(leg[0], leg[1], leg[2], leg[3], leg[4], leg[5], price) for price in prices]
+        total_pnl += pnl
 
-    plt.figure(figsize=(10, 6))
-    plt.plot(expiration_prices, pnl, label='Payoff')
-    plt.axhline(0, color='black', linewidth=0.5)
-    for leg in legs:
-        plt.axvline(leg['strike_price'], color='red', linestyle='--', label=f'Strike Price {leg["strike_price"]}')
-    plt.xlabel('Expiration Price')
-    plt.ylabel('P&L')
-    plt.title('Option Strategy Payoff Chart')
+    plt.figure(figsize=(10, 5))
+    plt.plot(prices, total_pnl, label='Total P/L')
+    plt.axhline(0, color='black', linestyle='--')
+    plt.xlabel('Stock Price at Expiration')
+    plt.ylabel('Profit/Loss')
+    plt.title('Profit/Loss Diagram')
     plt.legend()
     plt.grid(True)
     st.pyplot(plt)
 
-st.title('Dynamic Options Strategy Calculator')
+def main():
+    st.title("Dynamic Option Strategy Calculator")
+    legs = st.number_input("Number of Legs", min_value=1, max_value=10, value=4, step=1)
 
-num_legs = st.number_input('Enter Number of Legs', min_value=1, max_value=10, value=1)
+    leg_data = []
+    for i in range(legs):
+        with st.expander(f"Leg {i+1}"):
+            direction = st.selectbox("Client Direction", ["Client Buy", "Client Sell"], key=f"direction{i}")
+            option_type = st.selectbox("Option Type", ["Call", "Put", "Stock"], key=f"option{i}")
+            strike = st.number_input("Strike Price", value=100, key=f"strike{i}")
+            premium = st.number_input("Premium", value=1.0, step=0.01, key=f"premium{i}")
+            quantity = st.number_input("Quantity", value=1, min_value=1, key=f"quantity{i}")
+            contract_size = st.number_input("Contract Size", value=100, min_value=1, key=f"contract_size{i}")
+            leg_data.append((direction, option_type, strike, premium, quantity, contract_size))
 
-legs = []
-for i in range(num_legs):
-    st.write(f'Leg {i + 1}')
-    direction = st.selectbox(f'Direction for Leg {i + 1}', ['buy', 'sell'], key=f'direction_{i}')
-    option_type = st.selectbox(f'Option Type for Leg {i + 1}', ['call', 'put'], key=f'option_type_{i}')
-    strike_price = st.number_input(f'Strike Price for Leg {i + 1}', value=100.0, key=f'strike_price_{i}')
-    premium = st.number_input(f'Premium for Leg {i + 1}', value=1.0, key=f'premium_{i}')
-   
-    legs.append({
-        'direction': direction,
-        'option_type': option_type,
-        'strike_price': strike_price,
-        'premium': premium
-    })
+    if st.button("Calculate"):
+        strategy_type, max_gain, max_loss = evaluate_strategy(leg_data)
+        st.write(f"Strategy Type: {strategy_type}")
+        st.write(f"Maximum Gain: {max_gain}")
+        st.write(f"Maximum Loss: {max_loss}")
+        plot_strategy(leg_data)
 
-contract_size = st.number_input('Enter Contract Size', value=1)
-
-if st.button('Calculate Maximum Gain and Loss'):
-    max_gain, max_loss = calculate_max_gain_loss(legs)
-   
-    if max_gain == 'Unlimited':
-        st.write('Maximum Gain: Unlimited')
-    else:
-        st.write(f'Maximum Gain: {max_gain * contract_size:.2f}')
-   
-    if max_loss == 'Unlimited':
-        st.write('Maximum Loss: Unlimited')
-    else:
-        st.write(f'Maximum Loss: {max_loss * contract_size:.2f}')
-   
-    plot_payoff_chart(legs)
+if __name__ == "__main__":
+    main()
