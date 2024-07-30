@@ -130,13 +130,13 @@ for i in range(num_legs):
 if st.button('Calculate Maximum Gain and Loss'):
     max_gain, max_loss = calculate_max_gain_loss(legs)
     
-    if max_gain == 'Unlimited':
-        st.write('Maximum Gain: Unlimited')
+    if isinstance(max_gain, str):
+        st.write(f'Maximum Gain: {max_gain}')
     else:
         st.write(f'Maximum Gain: {max_gain:.2f}')
     
-    if max_loss == 'Unlimited':
-        st.write('Maximum Loss: Unlimited')
+    if isinstance(max_loss, str):
+        st.write(f'Maximum Loss: {max_loss}')
     else:
         st.write(f'Maximum Loss: {max_loss:.2f}')
     
