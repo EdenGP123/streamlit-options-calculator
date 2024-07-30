@@ -10,17 +10,18 @@ def calculate_pnl(expiration_price, legs):
         strike_price = leg['strike_price']
         premium = leg['premium']
         quantity = leg['quantity']
+        contract_size = leg['contract_size']
 
         if option_type == 'call':
             if direction == 'client buy':
-                pnl += quantity * (max(0, expiration_price - strike_price) - premium)
+                pnl += quantity * contract_size * (max(0, expiration_price - strike_price) - premium)
             else:
-                pnl += quantity * (premium - max(0, expiration_price - strike_price))
+                pnl += quantity * contract_size * (premium - max(0, expiration_price - strike_price))
         else:  # put option
             if direction == 'client buy':
-                pnl += quantity * (max(0, strike_price - expiration_price) - premium)
+                pnl += quantity * contract_size * (max(0, strike_price - expiration_price) - premium)
             else:
-                pnl += quantity * (premium - max(0, strike_price - expiration_price))
+                pnl += quantity * contract_size * (premium - max(0, strike_price - expiration_price))
 
     return pnl
 
@@ -50,37 +51,41 @@ def identify_strategy(legs):
 
 def calculate_max_gain_loss(legs):
     strategy = identify_strategy(legs)
-    net_premium = sum(leg['premium'] * leg['quantity'] for leg in legs)
+    net_premium = sum(leg['premium'] * leg['quantity'] * leg['contract_size'] for leg in legs)
     if strategy == 'Long Call':
         max_gain = 'Unlimited'
         max_loss = net_premium
     elif strategy == 'Long Put':
-        max_gain = (legs[0]['strike_price'] - net_premium) * legs[0]['quantity']
+        max_gain = (legs[0]['strike_price'] * legs[0]['quantity'] * legs[0]['contract_size']) - net_premium
         max_loss = net_premium
     elif strategy == 'Short Call':
         max_gain = net_premium
         max_loss = 'Unlimited'
     elif strategy == 'Short Put':
         max_gain = net_premium
-        max_loss = (legs[0]['strike_price'] - net_premium) * legs[0]['quantity']
+        max_loss = (legs[0]['strike_price'] * legs[0]['quantity'] * legs[0]['contract_size']) - net_premium
     elif strategy == 'Bull Call Spread':
-        max_gain = (legs[1]['strike_price'] - legs[0]['strike_price'] - net_premium) * legs[0]['quantity']
+        max_gain = ((legs[1]['strike_price'] - legs[0]['strike_price']) * legs[0]['quantity'] * legs[0]['contract_size']) - net_premium
         max_loss = net_premium
     elif strategy == 'Bear Put Spread':
-        max_gain = (legs[0]['strike_price'] - legs[1]['strike_price'] - net_premium) * legs[0]['quantity']
+        max_gain = ((legs[0]['strike_price'] - legs[1]['strike_price']) * legs[0]['quantity'] * legs[0]['contract_size']) - net_premium
         max_loss = net_premium
     elif strategy == 'Bear Call Spread':
         max_gain = net_premium
-        max_loss = (legs[1]['strike_price'] - legs[0]['strike_price'] - net_premium) * legs[0]['quantity']
+        max_loss = ((legs[1]['strike_price'] - legs[0]['strike_price']) * legs[0]['quantity'] * legs[0]['contract_size']) - net_premium
     elif strategy == 'Bull Put Spread':
         max_gain = net_premium
-        max_loss = (legs[0]['strike_price'] - legs[1]['strike_price'] - net_premium) * legs[0]['quantity']
+        max_loss = ((legs[0]['strike_price'] - legs[1]['strike_price']) * legs[0]['quantity'] * legs[0]['contract_size']) - net_premium
     else:
-        max_gain = 'Complex calculation'
-        max_loss = 'Complex calculation'
+        # For complex strategies, calculate the maximum gain and loss by iterating over possible expiration prices
+        expiration_prices = np.linspace(min(leg['strike_price'] for leg in legs) - 10, 
+                                        max(leg['strike_price'] for leg in legs) + 10, 500)
+        pnls = [calculate_pnl(price, legs) for price in expiration_prices]
+        max_gain = max(pnls)
+        max_loss = min(pnls)
     return max_gain, max_loss
 
-def plot_payoff_chart(legs, x_range=None, y_range=None):
+def plot_payoff_chart(legs):
     expiration_prices = np.linspace(min(leg['strike_price'] for leg in legs) - 10, 
                                     max(leg['strike_price'] for leg in legs) + 10, 500)
     pnl = [calculate_pnl(price, legs) for price in expiration_prices]
@@ -99,11 +104,6 @@ def plot_payoff_chart(legs, x_range=None, y_range=None):
         showlegend=False
     )
 
-    if x_range:
-        fig.update_xaxes(range=x_range)
-    if y_range:
-        fig.update_yaxes(range=y_range)
-
     st.plotly_chart(fig)
 
 st.title('Dynamic Options Strategy Calculator')
@@ -118,16 +118,16 @@ for i in range(num_legs):
         strike_price = st.number_input(f'Strike Price for Leg {i + 1}', value=100.0, key=f'strike_price_{i}')
         premium = st.number_input(f'Premium for Leg {i + 1}', value=1.0, key=f'premium_{i}')
         quantity = st.number_input(f'Quantity for Leg {i + 1}', value=1, key=f'quantity_{i}')
+        contract_size = st.number_input(f'Contract Size for Leg {i + 1}', value=100, key=f'contract_size_{i}')
 
         legs.append({
             'direction': direction,
             'option_type': option_type,
             'strike_price': strike_price,
             'premium': premium,
-            'quantity': quantity
+            'quantity': quantity,
+            'contract_size': contract_size
         })
-
-contract_size = st.number_input('Enter Contract Size', value=1)
 
 if st.button('Calculate Maximum Gain and Loss'):
     max_gain, max_loss = calculate_max_gain_loss(legs)
