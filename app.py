@@ -134,7 +134,7 @@ if st.button('Calculate Maximum Gain and Loss'):
         st.write(f'Maximum Loss: {max_loss:.2f}')
     
     plot_payoff_chart(legs)
-    
-    expiration_price_input = st.number_input('Enter Specific Expiration Price', value=100.0)
-    pnl_at_expiration = calculate_pnl(expiration_price_input, legs)
-    st.write(f'Gain/Loss at Given Expiration Price: {pnl_at_expiration:.2f}')
+
+expiration_price_input = st.number_input('Enter Specific Expiration Price', value=100.0)
+pnl_at_expiration = calculate_pnl(expiration_price_input, legs)
+st.write(f'Gain/Loss at Given Expiration Price: {pnl_at_expiration:.2f}')
