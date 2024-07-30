@@ -24,14 +24,61 @@ def calculate_pnl(expiration_price, legs):
 
     return pnl
 
+def identify_strategy(legs):
+    if len(legs) == 1:
+        if legs[0]['direction'] == 'buy' and legs[0]['option_type'] == 'call':
+            return 'Long Call'
+        elif legs[0]['direction'] == 'buy' and legs[0]['option_type'] == 'put':
+            return 'Long Put'
+        elif legs[0]['direction'] == 'sell' and legs[0]['option_type'] == 'call':
+            return 'Short Call'
+        elif legs[0]['direction'] == 'sell' and legs[0]['option_type'] == 'put':
+            return 'Short Put'
+    elif len(legs) == 2:
+        if legs[0]['option_type'] == 'call' and legs[1]['option_type'] == 'call':
+            if legs[0]['direction'] == 'buy' and legs[1]['direction'] == 'sell' and legs[0]['strike_price'] < legs[1]['strike_price']:
+                return 'Bull Call Spread'
+            elif legs[0]['direction'] == 'sell' and legs[1]['direction'] == 'buy' and legs[0]['strike_price'] < legs[1]['strike_price']:
+                return 'Bear Call Spread'
+        elif legs[0]['option_type'] == 'put' and legs[1]['option_type'] == 'put':
+            if legs[0]['direction'] == 'buy' and legs[1]['direction'] == 'sell' and legs[0]['strike_price'] > legs[1]['strike_price']:
+                return 'Bear Put Spread'
+            elif legs[0]['direction'] == 'sell' and legs[1]['direction'] == 'buy' and legs[0]['strike_price'] > legs[1]['strike_price']:
+                return 'Bull Put Spread'
+    # Add more conditions for other strategies as needed
+    return 'Complex Multi-Leg Strategy'
+
 def calculate_max_gain_loss(legs):
-    expiration_prices = np.linspace(0, 2 * max(leg['strike_price'] for leg in legs), 1000)
-    pnl = [calculate_pnl(price, legs) for price in expiration_prices]
+    strategy = identify_strategy(legs)
+    max_gain = 'Varies'
+    max_loss = 'Varies'
 
-    max_gain = max(pnl)
-    max_loss = min(pnl)
+    if strategy == 'Long Call':
+        max_gain = 'Unlimited'
+        max_loss = legs[0]['premium'] * legs[0]['quantity']
+    elif strategy == 'Long Put':
+        max_gain = (legs[0]['strike_price'] - legs[0]['premium']) * legs[0]['quantity']
+        max_loss = legs[0]['premium'] * legs[0]['quantity']
+    elif strategy == 'Short Call':
+        max_gain = legs[0]['premium'] * legs[0]['quantity']
+        max_loss = 'Unlimited'
+    elif strategy == 'Short Put':
+        max_gain = legs[0]['premium'] * legs[0]['quantity']
+        max_loss = (legs[0]['strike_price'] - legs[0]['premium']) * legs[0]['quantity']
+    elif strategy == 'Bull Call Spread':
+        max_gain = ((legs[1]['strike_price'] - legs[0]['strike_price']) - (legs[0]['premium'] - legs[1]['premium'])) * legs[0]['quantity']
+        max_loss = (legs[0]['premium'] - legs[1]['premium']) * legs[0]['quantity']
+    elif strategy == 'Bear Put Spread':
+        max_gain = ((legs[0]['strike_price'] - legs[1]['strike_price']) - (legs[0]['premium'] - legs[1]['premium'])) * legs[0]['quantity']
+        max_loss = (legs[0]['premium'] - legs[1]['premium']) * legs[0]['quantity']
+    elif strategy == 'Bear Call Spread':
+        max_gain = (legs[0]['premium'] - legs[1]['premium']) * legs[0]['quantity']
+        max_loss = ((legs[1]['strike_price'] - legs[0]['strike_price']) - (legs[0]['premium'] - legs[1]['premium'])) * legs[0]['quantity']
+    elif strategy == 'Bull Put Spread':
+        max_gain = (legs[0]['premium'] - legs[1]['premium']) * legs[0]['quantity']
+        max_loss = ((legs[0]['strike_price'] - legs[1]['strike_price']) - (legs[0]['premium'] - legs[1]['premium'])) * legs[0]['quantity']
 
-    return max_gain, max_loss
+    return max_gain, max_loss, strategy
 
 def plot_payoff_chart(legs):
     expiration_prices = np.linspace(0, 2 * max(leg['strike_price'] for leg in legs), 500)
@@ -73,8 +120,9 @@ for i in range(num_legs):
 contract_size = st.number_input('Enter Contract Size', value=1)
 
 if st.button('Calculate Maximum Gain and Loss'):
-    max_gain, max_loss = calculate_max_gain_loss(legs)
+    max_gain, max_loss, strategy = calculate_max_gain_loss(legs)
    
+    st.write(f'Option Strategy: {strategy}')
     if max_gain == 'Unlimited':
         st.write('Maximum Gain: Unlimited')
     else:
