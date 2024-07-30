@@ -143,12 +143,3 @@ if st.button('Calculate Maximum Gain and Loss'):
 expiration_price_input = st.number_input('Enter Specific Expiration Price', value=100.0)
 pnl_at_expiration = calculate_pnl(expiration_price_input, legs)
 st.write(f'Gain/Loss at Given Expiration Price: {pnl_at_expiration:.2f}')
-
-st.write("### Customize Payoff Chart")
-x_min = st.number_input("X-axis minimum value", value=0.0)
-x_max = st.number_input("X-axis maximum value", value=2 * max(leg['strike_price'] for leg in legs))
-y_min = st.number_input("Y-axis minimum value", value=-10.0)
-y_max = st.number_input("Y-axis maximum value", value=10.0)
-
-if st.button("Update Payoff Chart"):
-    plot_payoff_chart(legs, x_range=[x_min, x_max], y_range=[y_min, y_max])
