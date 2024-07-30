@@ -14,14 +14,14 @@ def calculate_pnl(expiration_price, legs):
 
         if option_type == 'call':
             if direction == 'buy':
-                pnl += quantity * contract_size * max(0, expiration_price - strike_price) - premium
+                pnl += quantity * contract_size * (max(0, expiration_price - strike_price) - premium)
             else:
-                pnl += premium - quantity * contract_size * max(0, expiration_price - strike_price)
+                pnl += quantity * contract_size * (premium - max(0, expiration_price - strike_price))
         else:  # put option
             if direction == 'buy':
-                pnl += quantity * contract_size * max(0, strike_price - expiration_price) - premium
+                pnl += quantity * contract_size * (max(0, strike_price - expiration_price) - premium)
             else:
-                pnl += premium - quantity * contract_size * max(0, strike_price - expiration_price)
+                pnl += quantity * contract_size * (premium - max(0, strike_price - expiration_price))
 
     return pnl
 
@@ -85,7 +85,7 @@ def calculate_max_gain_loss(legs):
     return max_gain, max_loss
 
 def plot_payoff_chart(legs):
-    expiration_prices = np.linspace(0, 4 * max(leg['strike_price'] for leg in legs), 2000)  # Adjusted range
+    expiration_prices = np.linspace(0, 2 * max(leg['strike_price'] for leg in legs), 500)
     pnl = [calculate_pnl(price, legs) for price in expiration_prices]
 
     fig = go.Figure()
@@ -130,13 +130,17 @@ for i in range(num_legs):
 if st.button('Calculate Maximum Gain and Loss'):
     max_gain, max_loss = calculate_max_gain_loss(legs)
     
-    if isinstance(max_gain, str):
-        st.write(f'Maximum Gain: {max_gain}')
+    if max_gain == 'Unlimited':
+        st.write('Maximum Gain: Unlimited')
+    elif max_gain == 'Complex calculation':
+        st.write('Maximum Gain: Complex calculation')
     else:
         st.write(f'Maximum Gain: {max_gain:.2f}')
     
-    if isinstance(max_loss, str):
-        st.write(f'Maximum Loss: {max_loss}')
+    if max_loss == 'Unlimited':
+        st.write('Maximum Loss: Unlimited')
+    elif max_loss == 'Complex calculation':
+        st.write('Maximum Loss: Complex calculation')
     else:
         st.write(f'Maximum Loss: {max_loss:.2f}')
     
