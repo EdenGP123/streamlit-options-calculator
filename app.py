@@ -1,6 +1,6 @@
 import streamlit as st
 import numpy as np
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 def calculate_pnl(expiration_price, legs):
     pnl = 0
@@ -79,21 +79,26 @@ def calculate_max_gain_loss(legs):
         max_loss = 'Varies'
     return max_gain, max_loss
 
-def plot_payoff_chart(legs):
-    expiration_prices = np.linspace(0, 2 * max(leg['strike_price'] for leg in legs), 500)
+def plot_payoff_chart(legs, x_range, y_range):
+    expiration_prices = np.linspace(x_range[0], x_range[1], 500)
     pnl = [calculate_pnl(price, legs) for price in expiration_prices]
 
-    plt.figure(figsize=(10, 6))
-    plt.plot(expiration_prices, pnl, label='Payoff')
-    plt.axhline(0, color='black', linewidth=0.5)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=expiration_prices, y=pnl, mode='lines', name='Payoff'))
+    
     for leg in legs:
-        plt.axvline(leg['strike_price'], color='red', linestyle='--', label=f'Strike Price {leg["strike_price"]}')
-    plt.xlabel('Expiration Price')
-    plt.ylabel('P&L')
-    plt.title('Option Strategy Payoff Chart')
-    plt.legend()
-    plt.grid(True)
-    st.pyplot(plt)
+        fig.add_vline(x=leg['strike_price'], line=dict(color='red', dash='dash'), name=f'Strike Price {leg["strike_price"]}')
+    
+    fig.update_layout(
+        title='Option Strategy Payoff Chart',
+        xaxis_title='Expiration Price',
+        yaxis_title='P&L',
+        xaxis=dict(range=x_range),
+        yaxis=dict(range=y_range),
+        showlegend=False
+    )
+    
+    st.plotly_chart(fig)
 
 st.title('Dynamic Options Strategy Calculator')
 
@@ -133,8 +138,17 @@ if st.button('Calculate Maximum Gain and Loss'):
     else:
         st.write(f'Maximum Loss: {max_loss:.2f}')
     
-    plot_payoff_chart(legs)
+    plot_payoff_chart(legs, x_range=[0, 2 * max(leg['strike_price'] for leg in legs)], y_range=[-10, 10])
 
 expiration_price_input = st.number_input('Enter Specific Expiration Price', value=100.0)
 pnl_at_expiration = calculate_pnl(expiration_price_input, legs)
 st.write(f'Gain/Loss at Given Expiration Price: {pnl_at_expiration:.2f}')
+
+st.write("### Customize Payoff Chart")
+x_min = st.number_input("X-axis minimum value", value=0.0)
+x_max = st.number_input("X-axis maximum value", value=2 * max(leg['strike_price'] for leg in legs))
+y_min = st.number_input("Y-axis minimum value", value=-10.0)
+y_max = st.number_input("Y-axis maximum value", value=10.0)
+
+if st.button("Update Payoff Chart"):
+    plot_payoff_chart(legs, x_range=[x_min, x_max], y_range=[y_min, y_max])
