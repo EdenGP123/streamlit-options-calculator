@@ -46,6 +46,13 @@ def identify_strategy(legs):
                     return 'Bear Call Spread'
                 else:
                     return 'Bull Put Spread'
+    elif len(legs) == 3:
+        return 'Ratio Spread'
+    elif len(legs) == 4:
+        if legs[0]['option_type'] == 'call' and legs[2]['option_type'] == 'put':
+            return 'Iron Condor'
+        elif legs[0]['option_type'] == 'call' and legs[1]['option_type'] == 'call' and legs[2]['option_type'] == 'call' and legs[3]['option_type'] == 'call':
+            return 'Butterfly Spread'
     return 'Complex Strategy'
 
 def calculate_max_gain_loss(legs):
@@ -74,9 +81,22 @@ def calculate_max_gain_loss(legs):
     elif strategy == 'Bull Put Spread':
         max_gain = (legs[0]['premium'] - legs[1]['premium']) * legs[0]['quantity']
         max_loss = (legs[0]['strike_price'] - legs[1]['strike_price'] - legs[0]['premium'] + legs[1]['premium']) * legs[0]['quantity']
+    elif strategy == 'Ratio Spread':
+        if legs[0]['option_type'] == 'call':
+            max_gain = (legs[1]['strike_price'] - legs[0]['strike_price']) * legs[0]['quantity']
+            max_loss = 'Unlimited'
+        else:
+            max_gain = (legs[0]['strike_price'] - legs[1]['strike_price']) * legs[0]['quantity']
+            max_loss = 'Unlimited'
+    elif strategy == 'Iron Condor':
+        max_gain = (legs[1]['premium'] + legs[2]['premium'] - legs[0]['premium'] - legs[3]['premium']) * legs[0]['quantity']
+        max_loss = (legs[3]['strike_price'] - legs[2]['strike_price']) * legs[0]['quantity'] - max_gain
+    elif strategy == 'Butterfly Spread':
+        max_gain = (legs[1]['strike_price'] - legs[0]['strike_price']) * legs[0]['quantity'] - (legs[1]['premium'] + legs[2]['premium'] - legs[0]['premium'] - legs[3]['premium']) * legs[0]['quantity']
+        max_loss = (legs[1]['premium'] + legs[2]['premium'] - legs[0]['premium'] - legs[3]['premium']) * legs[0]['quantity']
     else:
-        max_gain = 'Varies'
-        max_loss = 'Varies'
+        max_gain = 'Complex calculation'
+        max_loss = 'Complex calculation'
     return max_gain, max_loss
 
 def plot_payoff_chart(legs, x_range, y_range):
@@ -128,15 +148,15 @@ if st.button('Calculate Maximum Gain and Loss'):
     
     st.write(f'Strategy: {identify_strategy(legs)}')
 
-    if max_gain == 'Unlimited':
-        st.write('Maximum Gain: Unlimited')
+    if max_gain == 'Unlimited' or isinstance(max_gain, str):
+        st.write(f'Maximum Gain: {max_gain}')
     else:
-        st.write(f'Maximum Gain: {max_gain:.2f}')
+        st.write(f'Maximum Gain: {float(max_gain):.2f}')
     
-    if max_loss == 'Unlimited':
-        st.write('Maximum Loss: Unlimited')
+    if max_loss == 'Unlimited' or isinstance(max_loss, str):
+        st.write(f'Maximum Loss: {max_loss}')
     else:
-        st.write(f'Maximum Loss: {max_loss:.2f}')
+        st.write(f'Maximum Loss: {float(max_loss):.2f}')
     
     plot_payoff_chart(legs, x_range=[0, 2 * max(leg['strike_price'] for leg in legs)], y_range=[-10, 10])
 
