@@ -85,7 +85,7 @@ def calculate_max_gain_loss(legs):
     return max_gain, max_loss
 
 def plot_payoff_chart(legs):
-    expiration_prices = np.linspace(0, 2 * max(leg['strike_price'] for leg in legs), 500)
+    expiration_prices = np.linspace(0, 4 * max(leg['strike_price'] for leg in legs), 2000)  # Adjusted range
     pnl = [calculate_pnl(price, legs) for price in expiration_prices]
 
     fig = go.Figure()
