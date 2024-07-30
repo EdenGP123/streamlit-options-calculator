@@ -8,7 +8,7 @@ def calculate_pnl(expiration_price, legs):
         direction = leg['direction']
         option_type = leg['option_type']
         strike_price = leg['strike_price']
-        premium = leg['premium']
+        premium = leg['premium'] * leg['quantity'] * leg['contract_size']
         quantity = leg['quantity']
         contract_size = leg['contract_size']
 
@@ -29,7 +29,7 @@ def calculate_single_leg_gain_loss(leg):
     direction = leg['direction']
     option_type = leg['option_type']
     strike_price = leg['strike_price']
-    premium = leg['premium']
+    premium = leg['premium'] * leg['quantity'] * leg['contract_size']
 
     if option_type == 'call':
         if direction == 'buy':
@@ -40,11 +40,11 @@ def calculate_single_leg_gain_loss(leg):
             max_loss = 'Unlimited'
     else:  # put option
         if direction == 'buy':
-            max_gain = strike_price - premium
+            max_gain = (strike_price * leg['quantity'] * leg['contract_size']) - premium
             max_loss = premium
         else:
             max_gain = premium
-            max_loss = strike_price - premium
+            max_loss = (strike_price * leg['quantity'] * leg['contract_size']) - premium
 
     return max_gain, max_loss
 
