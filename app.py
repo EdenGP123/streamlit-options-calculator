@@ -89,6 +89,6 @@ if st.button('Calculate Maximum Gain and Loss'):
 
 specific_expiration_price = st.number_input('Enter Specific Expiration Price', value=100.0)
 
-if st.button('Calculate Gain/Loss at Specific Expiration Price'):
+if st.button('Calculate Gain/Loss at Given Expiration Price'):
     pnl_at_specific_price = calculate_pnl(specific_expiration_price, legs)
-    st.write(f'Gain/Loss at Expiration Price {specific_expiration_price}: {pnl_at_specific_price:.2f}')
+    st.write(f'Gain/Loss at Given Expiration Price {specific_expiration_price}: {pnl_at_specific_price:.2f}')
