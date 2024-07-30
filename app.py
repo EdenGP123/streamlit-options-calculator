@@ -14,14 +14,14 @@ def calculate_pnl(expiration_price, legs):
 
         if option_type == 'call':
             if direction == 'buy':
-                pnl += quantity * contract_size * (max(0, expiration_price - strike_price) - premium)
+                pnl += quantity * contract_size * max(0, expiration_price - strike_price) - premium
             else:
-                pnl += quantity * contract_size * (premium - max(0, expiration_price - strike_price))
+                pnl += premium - quantity * contract_size * max(0, expiration_price - strike_price)
         else:  # put option
             if direction == 'buy':
-                pnl += quantity * contract_size * (max(0, strike_price - expiration_price) - premium)
+                pnl += quantity * contract_size * max(0, strike_price - expiration_price) - premium
             else:
-                pnl += quantity * contract_size * (premium - max(0, strike_price - expiration_price))
+                pnl += premium - quantity * contract_size * max(0, strike_price - expiration_price)
 
     return pnl
 
