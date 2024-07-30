@@ -58,29 +58,32 @@ def calculate_two_leg_gain_loss(legs):
     return max_gain, max_loss
 
 def calculate_max_gain_loss(legs):
-    if len(legs) == 1:
-        return calculate_single_leg_gain_loss(legs[0])
-    elif len(legs) == 2:
-        return calculate_two_leg_gain_loss(legs)
+    has_long_call = any(leg['option_type'] == 'call' and leg['direction'] == 'buy' for leg in legs)
+    has_short_call = any(leg['option_type'] == 'call' and leg['direction'] == 'sell' for leg in legs)
+    has_long_put = any(leg['option_type'] == 'put' and leg['direction'] == 'buy' for leg in legs)
+    has_short_put = any(leg['option_type'] == 'put' and leg['direction'] == 'sell' for leg in legs)
+
+    if has_long_call and not has_short_call:
+        max_gain = 'Unlimited'
+    elif has_long_call and has_short_call:
+        expiration_prices = np.linspace(0, 2 * max(leg['strike_price'] for leg in legs), 1000)
+        pnl = [calculate_pnl(price, legs) for price in expiration_prices]
+        max_gain = max(pnl)
     else:
-        has_short_call = any(leg['option_type'] == 'call' and leg['direction'] == 'sell' for leg in legs)
-        has_short_put = any(leg['option_type'] == 'put' and leg['direction'] == 'sell' for leg in legs)
-        
-        if has_short_call and has_short_put:
-            max_gain = 'Complex calculation'
-            max_loss = 'Complex calculation'
-        elif has_short_call:
-            max_gain = 'Complex calculation'
-            max_loss = 'Unlimited'
-        elif has_short_put:
-            max_gain = 'Complex calculation'
-            max_loss = 'Unlimited'
-        else:
-            expiration_prices = np.linspace(0, 2 * max(leg['strike_price'] for leg in legs), 1000)
-            pnl = [calculate_pnl(price, legs) for price in expiration_prices]
-            
-            max_gain = max(pnl)
-            max_loss = min(pnl)
+        expiration_prices = np.linspace(0, 2 * max(leg['strike_price'] for leg in legs), 1000)
+        pnl = [calculate_pnl(price, legs) for price in expiration_prices]
+        max_gain = max(pnl)
+    
+    if has_short_call and not has_long_call:
+        max_loss = 'Unlimited'
+    elif has_long_put or has_short_put:
+        expiration_prices = np.linspace(0, 2 * max(leg['strike_price'] for leg in legs), 1000)
+        pnl = [calculate_pnl(price, legs) for price in expiration_prices]
+        max_loss = min(pnl)
+    else:
+        expiration_prices = np.linspace(0, 2 * max(leg['strike_price'] for leg in legs), 1000)
+        pnl = [calculate_pnl(price, legs) for price in expiration_prices]
+        max_loss = min(pnl)
 
     return max_gain, max_loss
 
