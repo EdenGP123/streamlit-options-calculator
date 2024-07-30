@@ -8,7 +8,7 @@ def calculate_pnl(expiration_price, legs):
         direction = leg['direction']
         option_type = leg['option_type']
         strike_price = leg['strike_price']
-        premium = leg['premium'] * leg['quantity'] * leg['contract_size']
+        premium = leg['premium']
         quantity = leg['quantity']
         contract_size = leg['contract_size']
 
