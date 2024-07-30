@@ -30,23 +30,21 @@ def calculate_single_leg_gain_loss(leg):
     option_type = leg['option_type']
     strike_price = leg['strike_price']
     premium = leg['premium']
-    quantity = leg['quantity']
-    contract_size = leg['contract_size']
 
     if option_type == 'call':
         if direction == 'buy':
             max_gain = 'Unlimited'
-            max_loss = premium * quantity * contract_size
+            max_loss = premium
         else:
-            max_gain = premium * quantity * contract_size
+            max_gain = premium
             max_loss = 'Unlimited'
     else:  # put option
         if direction == 'buy':
-            max_gain = (strike_price * quantity * contract_size) - (premium * quantity * contract_size)
-            max_loss = premium * quantity * contract_size
+            max_gain = strike_price - premium
+            max_loss = premium
         else:
-            max_gain = premium * quantity * contract_size
-            max_loss = (strike_price * quantity * contract_size) - (premium * quantity * contract_size)
+            max_gain = premium
+            max_loss = strike_price - premium
 
     return max_gain, max_loss
 
