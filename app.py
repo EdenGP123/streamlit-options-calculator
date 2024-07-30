@@ -24,50 +24,12 @@ def calculate_pnl(expiration_price, legs):
 
     return pnl
 
-def calculate_single_leg_gain_loss(leg):
-    direction = leg['direction']
-    option_type = leg['option_type']
-    strike_price = leg['strike_price']
-    premium = leg['premium']
-    quantity = leg['quantity']
-
-    if option_type == 'call':
-        if direction == 'buy':
-            max_gain = 'Unlimited'
-            max_loss = premium * quantity
-        else:
-            max_gain = premium * quantity
-            max_loss = 'Unlimited'
-    else:  # put option
-        if direction == 'buy':
-            max_gain = (strike_price - premium) * quantity
-            max_loss = premium * quantity
-        else:
-            max_gain = premium * quantity
-            max_loss = (strike_price - premium) * quantity
-
-    return max_gain, max_loss
-
-def calculate_two_leg_gain_loss(legs):
+def calculate_max_gain_loss(legs):
     expiration_prices = np.linspace(0, 2 * max(leg['strike_price'] for leg in legs), 1000)
     pnl = [calculate_pnl(price, legs) for price in expiration_prices]
 
     max_gain = max(pnl)
     max_loss = min(pnl)
-   
-    return max_gain, max_loss
-
-def calculate_max_gain_loss(legs):
-    if len(legs) == 1:
-        return calculate_single_leg_gain_loss(legs[0])
-    elif len(legs) == 2:
-        return calculate_two_leg_gain_loss(legs)
-    else:
-        expiration_prices = np.linspace(0, 2 * max(leg['strike_price'] for leg in legs), 1000)
-        pnl = [calculate_pnl(price, legs) for price in expiration_prices]
-       
-        max_gain = max(pnl)
-        max_loss = min(pnl)
 
     return max_gain, max_loss
 
@@ -124,3 +86,9 @@ if st.button('Calculate Maximum Gain and Loss'):
         st.write(f'Maximum Loss: {max_loss:.2f}')
    
     plot_payoff_chart(legs)
+
+specific_expiration_price = st.number_input('Enter Specific Expiration Price', value=100.0)
+
+if st.button('Calculate Gain/Loss at Specific Expiration Price'):
+    pnl_at_specific_price = calculate_pnl(specific_expiration_price, legs)
+    st.write(f'Gain/Loss at Expiration Price {specific_expiration_price}: {pnl_at_specific_price:.2f}')
