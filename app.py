@@ -26,6 +26,10 @@ def calculate_pnl(expiration_price, legs):
     return pnl
 
 def calculate_max_gain_loss(legs):
+    # Initialize max_gain and max_loss
+    max_gain = float('-inf')
+    max_loss = float('inf')
+
     # Check for unlimited gain/loss conditions considering different quantities and contract sizes
     net_call_position = sum(
         (leg['quantity'] * leg['contract_size']) if leg['option_type'] == 'call' and leg['direction'] == 'client buy' else
@@ -40,25 +44,25 @@ def calculate_max_gain_loss(legs):
 
     if net_call_position > 0:
         max_gain = float('inf')
-    elif net_call_position < 0:
+    if net_call_position < 0:
         max_loss = float('-inf')
-    else:
-        expiration_prices = np.linspace(0, 2 * max(leg['strike_price'] for leg in legs), 1000)
-        pnl = [calculate_pnl(price, legs) for price in expiration_prices]
-        max_gain = max(pnl)
-        max_loss = min(pnl)
 
     if net_put_position > 0:
         if max_loss != float('-inf'):
             expiration_prices = np.linspace(0, 2 * max(leg['strike_price'] for leg in legs), 1000)
             pnl = [calculate_pnl(price, legs) for price in expiration_prices]
             max_loss = min(pnl)
-    elif net_put_position < 0:
+    if net_put_position < 0:
         if max_gain != float('inf'):
             expiration_prices = np.linspace(0, 2 * max(leg['strike_price'] for leg in legs), 1000)
             pnl = [calculate_pnl(price, legs) for price in expiration_prices]
             max_gain = max(pnl)
 
+    if max_gain == float('-inf'):
+        max_gain = 'Unlimited'
+    if max_loss == float('inf'):
+        max_loss = 'Unlimited'
+    
     return max_gain, max_loss
 
 def plot_payoff_chart(legs):
@@ -107,12 +111,12 @@ for i in range(num_legs):
 if st.button('Calculate Maximum Gain and Loss'):
     max_gain, max_loss = calculate_max_gain_loss(legs)
     
-    if max_gain == float('inf'):
+    if max_gain == 'Unlimited':
         st.write('Maximum Gain: Unlimited')
     else:
         st.write(f'Maximum Gain: {max_gain:.2f}')
     
-    if max_loss == float('-inf'):
+    if max_loss == 'Unlimited':
         st.write('Maximum Loss: Unlimited')
     else:
         st.write(f'Maximum Loss: {max_loss:.2f}')
