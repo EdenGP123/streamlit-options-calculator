@@ -26,24 +26,34 @@ def calculate_pnl(expiration_price, legs):
     return pnl
 
 def calculate_max_gain_loss(legs):
-    has_short_call = any(leg['option_type'] == 'call' and leg['direction'] == 'client sell' for leg in legs)
-    has_long_call = any(leg['option_type'] == 'call' and leg['direction'] == 'client buy' for leg in legs)
-    has_short_put = any(leg['option_type'] == 'put' and leg['direction'] == 'client sell' for leg in legs)
-    has_long_put = any(leg['option_type'] == 'put' and leg['direction'] == 'client buy' for leg in legs)
+    expiration_prices = np.linspace(0, 2 * max(leg['strike_price'] for leg in legs), 1000)
+    pnl = [calculate_pnl(price, legs) for price in expiration_prices]
 
-    if has_short_call and not has_long_call:
+    max_loss = min(pnl)
+    max_gain = max(pnl)
+
+    has_unlimited_loss = False
+    has_unlimited_gain = False
+
+    for leg in legs:
+        if leg['option_type'] == 'call' and leg['direction'] == 'client sell':
+            if not any(other_leg['option_type'] == 'call' and other_leg['direction'] == 'client buy' and other_leg['quantity'] >= leg['quantity'] for other_leg in legs):
+                has_unlimited_loss = True
+        if leg['option_type'] == 'put' and leg['direction'] == 'client sell':
+            if not any(other_leg['option_type'] == 'put' and other_leg['direction'] == 'client buy' and other_leg['quantity'] >= leg['quantity'] for other_leg in legs):
+                has_unlimited_loss = True
+
+        if leg['option_type'] == 'call' and leg['direction'] == 'client buy':
+            if not any(other_leg['option_type'] == 'call' and other_leg['direction'] == 'client sell' and other_leg['quantity'] >= leg['quantity'] for other_leg in legs):
+                has_unlimited_gain = True
+        if leg['option_type'] == 'put' and leg['direction'] == 'client buy':
+            if not any(other_leg['option_type'] == 'put' and other_leg['direction'] == 'client sell' and other_leg['quantity'] >= leg['quantity'] for other_leg in legs):
+                has_unlimited_gain = True
+
+    if has_unlimited_loss:
         max_loss = 'Unlimited'
-    else:
-        expiration_prices = np.linspace(0, 2 * max(leg['strike_price'] for leg in legs), 1000)
-        pnl = [calculate_pnl(price, legs) for price in expiration_prices]
-        max_loss = min(pnl)
-
-    if has_long_call or has_long_put:
-        expiration_prices = np.linspace(0, 2 * max(leg['strike_price'] for leg in legs), 1000)
-        pnl = [calculate_pnl(price, legs) for price in expiration_prices]
-        max_gain = max(pnl)
-    else:
-        max_gain = 'Limited'
+    if has_unlimited_gain:
+        max_gain = 'Unlimited'
 
     return max_gain, max_loss
 
@@ -93,17 +103,8 @@ for i in range(num_legs):
 if st.button('Calculate Maximum Gain and Loss'):
     max_gain, max_loss = calculate_max_gain_loss(legs)
     
-    if max_gain == 'Unlimited':
-        st.write('Maximum Gain: Unlimited')
-    elif max_gain == 'Limited':
-        st.write('Maximum Gain: Limited')
-    else:
-        st.write(f'Maximum Gain: {max_gain:.2f}')
-    
-    if max_loss == 'Unlimited':
-        st.write('Maximum Loss: Unlimited')
-    else:
-        st.write(f'Maximum Loss: {max_loss:.2f}')
+    st.write(f'Maximum Gain: {max_gain}')
+    st.write(f'Maximum Loss: {max_loss}')
     
     plot_payoff_chart(legs)
 
