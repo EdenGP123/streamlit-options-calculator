@@ -111,7 +111,3 @@ if st.button('Calculate Maximum Gain and Loss'):
 expiration_price_input = st.number_input('Enter Specific Expiration Price', value=100.0)
 pnl_at_expiration = calculate_pnl(expiration_price_input, legs)
 st.write(f'Gain/Loss at Given Expiration Price: {pnl_at_expiration:.2f}')
-
-st.markdown("***")
-st.markdown("_This model is built from a client's perspective, focusing on potential gains and losses based on different option strategies._")
-s
