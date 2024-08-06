@@ -79,6 +79,8 @@ def plot_payoff_chart(legs):
 
 st.title('Dynamic Options Strategy Calculator')
 
+st.markdown("**Note:** This model is from the client's perspective. All calculations and outcomes assume the client's position in the option strategy.")
+
 num_legs = st.number_input('Enter Number of Legs', min_value=1, max_value=10, value=1)
 
 legs = []
