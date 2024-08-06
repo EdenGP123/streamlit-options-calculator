@@ -82,7 +82,7 @@ st.title('Dynamic Options Strategy Calculator')
 st.markdown("**Note:** This model is from the client's perspective. All calculations and outcomes assume the client's position in the option strategy.")
 
 # Increased the max_value for num_legs to 20
-num_legs = st.number_input('Enter Number of Legs', min_value=1, max_value=20, value=1)
+num_legs = st.number_input('Enter Number of Legs', min_value=1, max_value=100, value=1)
 
 legs = []
 for i in range(num_legs):
