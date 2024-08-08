@@ -79,8 +79,6 @@ def plot_payoff_chart(legs):
 
 st.title('Dynamic Options Strategy Calculator')
 # Add a footnote at the bottom of the interface
-st.markdown("---")
-st.markdown("**Note:** This model calculates P&L and other metrics from the client's perspective. Please ensure that all data inputs are accurate for correct analysis.")
 
 
 # Increased the max_value for num_legs to 100
