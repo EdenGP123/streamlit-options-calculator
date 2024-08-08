@@ -113,6 +113,3 @@ expiration_price_input = st.number_input('Enter Specific Expiration Price', valu
 pnl_at_expiration = calculate_pnl(expiration_price_input, legs)
 st.write(f'Gain/Loss at Given Expiration Price: {pnl_at_expiration:.2f}')
 
-# Add a footnote at the bottom of the interface
-st.markdown("---")
-st.markdown("**Footnote:** This model calculates P&L and other metrics from the client's perspective. Please ensure that all data inputs are accurate for correct analysis.")
