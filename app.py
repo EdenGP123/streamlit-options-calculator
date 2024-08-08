@@ -78,6 +78,10 @@ def plot_payoff_chart(legs):
     st.plotly_chart(fig)
 
 st.title('Dynamic Options Strategy Calculator')
+# Add a footnote at the bottom of the interface
+st.markdown("---")
+st.markdown("**Note:** This model calculates P&L and other metrics from the client's perspective. Please ensure that all data inputs are accurate for correct analysis.")
+
 
 # Increased the max_value for num_legs to 100
 num_legs = st.number_input('Enter Number of Legs', min_value=1, max_value=100, value=1)
@@ -112,8 +116,5 @@ if st.button('Calculate Maximum Gain and Loss'):
 expiration_price_input = st.number_input('Enter Specific Expiration Price', value=100.0)
 pnl_at_expiration = calculate_pnl(expiration_price_input, legs)
 st.write(f'Gain/Loss at Given Expiration Price: {pnl_at_expiration:.2f}')
-# Add a footnote at the bottom of the interface
-st.markdown("---")
-st.markdown("**Footnote:** This model calculates P&L and other metrics from the client's perspective. Please ensure that all data inputs are accurate for correct analysis.")
 
 
